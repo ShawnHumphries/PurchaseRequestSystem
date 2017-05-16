@@ -19,8 +19,8 @@ public class DBUtil {
             try 
             {
                 // set the db url, username, and password
-                String url = "jdbc:mysql://localhost:3306/bigbox2db";
-                String username = "bb_user";
+                String url = "jdbc:mysql://localhost:3306/prs";
+                String username = "prs_user";
                 String password = "sesame";
 
                 // get and return the connection
