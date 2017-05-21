@@ -1,5 +1,7 @@
 package prs.business;
 
+import java.util.Date;
+
 /*
  * The Request class represents a request object that contains information about
  * a purchase request that a user has made for a product.
@@ -10,35 +12,35 @@ public class Request {
 	private int id;
 	private String description;
 	private String justification;
-	private String dateNeeded;
+	private Date dateNeeded;
 	private int userID;
 	private String deliveryMode;
-	private boolean docAttached;
+	private boolean docsAttached;
 	private String status;
 	private double total;
-	private String submittedDate;
+	private Date submittedDate;
 	
 	// Default constructor
 	public Request() {
 		id = 0;
 		description = "";
 		justification = "";
-		dateNeeded = "";
+		dateNeeded = null;
 		userID = 0;
 		deliveryMode = "";
-		docAttached = false;
+		docsAttached = false;
 		status = "";
 		total = 0.0;
-		submittedDate = "";
+		submittedDate = null;
 	}
 	
-	public Request(String description, String justification, String dateNeeded, int userID, String deliveryMode, boolean docAttached, String status, double total, String submittedDate) {
+	public Request(String description, String justification, Date dateNeeded, int userID, String deliveryMode, boolean docAttached, String status, double total, Date submittedDate) {
 		this.description = description;
 		this.justification = justification;
 		this.dateNeeded = dateNeeded;
 		this.userID = userID;
 		this.deliveryMode = deliveryMode;
-		this.docAttached = docAttached;
+		this.docsAttached = docAttached;
 		this.status = status;
 		this.total = total;
 		this.submittedDate = submittedDate;
@@ -68,11 +70,11 @@ public class Request {
 		this.justification = justification;
 	}
 
-	public String getDateNeeded() {
+	public Date getDateNeeded() {
 		return dateNeeded;
 	}
 
-	public void setDateNeeded(String dateNeeded) {
+	public void setDateNeeded(Date dateNeeded) {
 		this.dateNeeded = dateNeeded;
 	}
 
@@ -92,12 +94,12 @@ public class Request {
 		this.deliveryMode = deliveryMode;
 	}
 
-	public boolean isDocAttached() {
-		return docAttached;
+	public boolean isDocsAttached() {
+		return docsAttached;
 	}
 
-	public void setDocAttached(boolean docAttached) {
-		this.docAttached = docAttached;
+	public void setDocsAttached(boolean docsAttached) {
+		this.docsAttached = docsAttached;
 	}
 
 	public String getStatus() {
@@ -116,11 +118,11 @@ public class Request {
 		this.total = total;
 	}
 
-	public String getSubmittedDate() {
+	public Date getSubmittedDate() {
 		return submittedDate;
 	}
 
-	public void setSubmittedDate(String submittedDate) {
+	public void setSubmittedDate(Date submittedDate) {
 		this.submittedDate = submittedDate;
 	}
 	
