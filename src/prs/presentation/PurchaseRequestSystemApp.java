@@ -52,12 +52,14 @@ public class PurchaseRequestSystemApp {
 				registerNewUser();
 				break;
 			case "request":
+				createPurchaseRequest();
+				break;
 			case "review":
 			case "vendor":
 				displayAllVendors();
 				break;
 			case "product":
-				displayProductsByVendor();
+				displayProductsByVendor(0);
 			case "help":
 				break;
 			case "exit":
@@ -130,10 +132,10 @@ public class PurchaseRequestSystemApp {
 		ArrayList<Vendor> vendors = vendorDAO.getAllVendors();
 		if (vendors.size() > 0)
 		{
-			System.out.println("Code\t\tName\t\t\t\tAddress\t\t\t\tCity\t\tState\tZip\tPhone\t\tEMail\t\tPreApproved?");
+			System.out.println("ID\tCode\t\tName\t\t\t\tAddress\t\t\t\tCity\t\tState\tZip\tPhone\t\tEMail\t\tPreApproved?");
 			for (Vendor vendor : vendors)
 			{
-				System.out.print(vendor.getCode() + "\t" + vendor.getName() + "\t" + vendor.getAddress() + "\t" + vendor.getCity() + "\t" + vendor.getState() + "\t" + vendor.getZip());
+				System.out.print(vendor.getId() + "\t" + vendor.getCode() + "\t" + vendor.getName() + "\t" + vendor.getAddress() + "\t" + vendor.getCity() + "\t" + vendor.getState() + "\t" + vendor.getZip());
 				System.out.print("\t" + vendor.getPhone() + "\t" + vendor.getEmail() + "\t");
 				if (vendor.isPreapproved())
 					System.out.println("Yes");
@@ -147,15 +149,22 @@ public class PurchaseRequestSystemApp {
 
 	}
 	
-	private static void displayProductsByVendor() {
+	private static void displayProductsByVendor(int vendorID) {
 		
-		ArrayList<Product> productsByVendor = productDAO.getProductsByVendorID(2);
+		// If the vendor ID is zero, we must prompt for one!
+		if (vendorID == 0) {
+			System.out.println("Here is a list of vendors...");
+			displayAllVendors();
+			vendorID = Validator.getInt(sc, "Enter a vendor ID: ");
+		}
+		ArrayList<Product> productsByVendor = productDAO.getProductsByVendorID(vendorID);
 		if (productsByVendor.size() > 0)
 		{
-			System.out.println("Name\t\t\t\tPartNumber\tPrice\tUnit\tPhotoPath");
+			System.out.println("\nProducts for this vendor...");
+			System.out.println("ID\tName\t\t\t\tPartNumber\tPrice\tUnit\tPhotoPath");
 			for (Product product : productsByVendor)
 			{
-				System.out.print(product.getName() + "\t" + product.getPartNumber() + "\t" + StringUtil.getFormattedDouble(product.getPrice()));
+				System.out.print(product.getId() + "\t" + product.getName() + "\t" + product.getPartNumber() + "\t" + StringUtil.getFormattedDouble(product.getPrice()));
 				System.out.println("\t" + product.getUnit() + "\t" + product.getPhotoPath());
 			}
 		}
@@ -164,4 +173,38 @@ public class PurchaseRequestSystemApp {
 		System.out.println();
 	}
 	
+	private static void createPurchaseRequest() {
+		
+		String username = Validator.getString(sc, "Enter a user name: ");
+		String password = Validator.getString(sc, "Enter password: ");
+		User user = userDAO.getUserByUserNameAndPassword(username, password);
+		if (user == null) {
+			System.out.println("The username was invalid.  The purchase request cannot continue.");
+		}
+		else {
+			String description = Validator.getString(sc, "Enter the description: ");
+			String justification = Validator.getString(sc, "Enter the justification: ");
+			System.out.println("By what date does this request need to be fulfilled? ");
+			String dateNeeded = Validator.getString(sc, "\tBe sure to enter the date ('yyyy-mm-dd') for now: ", 10);
+			String deliveryMode = Validator.getString(sc, "Enter the delivery mode (pickup or mail): ");
+			String docAttached = Validator.getString(sc, "Is documentation attached? (y/n) ", 1);
+			boolean isdocAttached = false;
+			if (docAttached.equalsIgnoreCase("Y"))
+				isdocAttached = true;
+			String status = "Submitted";
+			
+			System.out.println("Here is a list of vendors...");
+			System.out.println("Please try to work with pre-approved vendors first.");
+			displayAllVendors();
+			int vendorID = Validator.getInt(sc, "Enter the ID of the vendor to buy products from: ");
+			
+			displayProductsByVendor(vendorID);
+			
+			// To do: loop until user is done picking products and quantity.  Calculate total
+			
+			System.out.println("Enter today's date...");
+			String submittedDate = Validator.getString(sc, "\tBe sure to enter the date ('yyyy-mm-dd') for now: ", 10);
+		}
+		System.out.println();
+	}
 }
