@@ -29,5 +29,50 @@ public class UserDB implements UserDAO {
 		}
 		return true;
 	}
-	
+
+	@Override
+	public User getUserByUserNameAndPassword(String username, String password) {
+
+		String sql = "SELECT ID, UserName, Password, FirstName, LastName, Phone, Email, Manager "
+				+ "from users "
+				+ "where UserName = ? AND Password = ?";
+        Connection connection = DBUtil.getConnection();
+        try (PreparedStatement ps = connection.prepareStatement(sql))
+        {
+        	ps.setString(1, username);
+        	ps.setString(2, password);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next())
+            {
+                return getUserFromRow(rs);
+            }
+            else
+            {
+            	rs.close();
+            	return null;
+            }
+        }
+        catch (SQLException e)
+        {
+        	System.out.println(e);
+        	return null;
+        }
+	}
+
+	private static User getUserFromRow(ResultSet rs) throws SQLException
+	{
+        User user = new User();
+
+        user.setId(rs.getInt("ID"));
+        user.setUsername(rs.getString("UserName"));
+        user.setPassword(rs.getString("Password"));
+        user.setFirstName(rs.getString("FirstName"));
+        user.setLastName(rs.getString("LastName"));
+        user.setPhone(rs.getString("Phone"));
+        user.setEmail(rs.getString("EMail"));
+        user.setManager(rs.getBoolean("Manager"));
+    	
+    	return user;
+	}
+
 }
