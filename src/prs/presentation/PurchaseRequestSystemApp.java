@@ -6,11 +6,13 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Scanner;
 
+import prs.business.LineItem;
 import prs.business.Product;
 import prs.business.Request;
 import prs.business.User;
 import prs.business.Vendor;
 import prs.db.DAOFactory;
+import prs.db.lineitem.LineItemDAO;
 import prs.db.product.ProductDAO;
 import prs.db.request.RequestDAO;
 import prs.db.user.UserDAO;
@@ -30,6 +32,7 @@ public class PurchaseRequestSystemApp {
 	private static VendorDAO vendorDAO = DAOFactory.getVendorDAO();
 	private static ProductDAO productDAO = DAOFactory.getProductDAO();
 	private static RequestDAO requestDAO = DAOFactory.getRequestDAO();
+	private static LineItemDAO lineItemDAO = DAOFactory.getLineItemDAO();
 
 	public static void main(String[] args) {
 
@@ -174,6 +177,7 @@ public class PurchaseRequestSystemApp {
 
 		int productID = -1;
 		int quantity = 0;
+		ArrayList <LineItem> lineItems = new ArrayList<>();
 		
 		String username = Validator.getString(sc, "Enter a user name: ");
 		String password = Validator.getString(sc, "Enter password: ");
@@ -192,7 +196,6 @@ public class PurchaseRequestSystemApp {
 			boolean isDocAttached = false;
 			if (docAttached.equalsIgnoreCase("Y"))
 				isDocAttached = true;
-			String status = "Submitted";
 			
 			System.out.println("Here is a list of vendors...");
 			System.out.println("Please try to work with pre-approved vendors first.");
@@ -208,9 +211,12 @@ public class PurchaseRequestSystemApp {
 				productID = Validator.getInt(sc, "Enter a product ID: ");
 				if (productID > 0) {
 					quantity = Validator.getInt(sc, "Enter the quantity: ");
+					// Get the price of the product and add that to the total of the purchase request
 					if (quantity > 0) {
+						LineItem lineitem = new LineItem(productID, quantity);
+						lineItems.add(lineitem);
 						Product p = productDAO.getProductByProductID(productID);
-						total += p.getPrice() * quantity;	// increase the total of the purchase request by the price of the product requested * quanitity
+						total += p.getPrice() * quantity;
 					}
 					else {
 						System.out.println("Error: quantity must be greater than or equal to zero.");
@@ -218,12 +224,25 @@ public class PurchaseRequestSystemApp {
 				}
 			}
 			
+			// set the status of the request.  All requests under $50.00 are automatically approved.
+			String status = "Submitted";
+			if (total < 50.00)
+				status = "Approved";
+			
 			Date submittedDate = StringUtil.convertTodaysDateToSQLDate();
 
 			// Create a request object and add it to the database (this is done at the same time as the lineitems are added...but for now we just want to see if this works
 			Request request = new Request(description, justification, dateNeeded, user.getId(), deliveryMode, isDocAttached, status, total, submittedDate);
-			if (requestDAO.createRequest(request))
+			if (requestDAO.createRequest(request)) {
+				// The INSERT was successful...so now get the ID of the INSERT
+				int requestID = requestDAO.getLastInsertID();
+				System.out.println("The request ID is: " + requestID);
+				for (LineItem li : lineItems) {
+					li.setRequestID(requestID);
+					lineItemDAO.addLineItem(li);
+				}
 				System.out.println("\nYour request has been added successfully.\n");
+			}
 			else
 				System.out.println("\nYour request was not added successfully.\n");
 		}
