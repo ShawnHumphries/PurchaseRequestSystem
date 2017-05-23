@@ -24,6 +24,11 @@ public class LineItem {
 		this.productID = productID;
 		this.quantity = quantity;
 	}
+	
+	public LineItem(int productID, int quantity) {
+		this.productID = productID;
+		this.quantity = quantity;
+	}
 
 	public int getId() {
 		return id;
