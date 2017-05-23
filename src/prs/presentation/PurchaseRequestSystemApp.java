@@ -1,15 +1,18 @@
 package prs.presentation;
 
+import java.sql.Date;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.Scanner;
 
 import prs.business.Product;
+import prs.business.Request;
 import prs.business.User;
 import prs.business.Vendor;
 import prs.db.DAOFactory;
 import prs.db.product.ProductDAO;
+import prs.db.request.RequestDAO;
 import prs.db.user.UserDAO;
 import prs.db.vendor.VendorDAO;
 import prs.util.StringUtil;
@@ -26,6 +29,7 @@ public class PurchaseRequestSystemApp {
 	private static UserDAO userDAO = DAOFactory.getUserDAO();
 	private static VendorDAO vendorDAO = DAOFactory.getVendorDAO();
 	private static ProductDAO productDAO = DAOFactory.getProductDAO();
+	private static RequestDAO requestDAO = DAOFactory.getRequestDAO();
 
 	public static void main(String[] args) {
 
@@ -33,13 +37,6 @@ public class PurchaseRequestSystemApp {
 
 		System.out.println("Welcome to the Purchase Request System");
 		
-		/*
-		Date myDate = new Date(); 
-		System.out.println(myDate); 
-		System.out.println(new SimpleDateFormat("MM-dd-yyyy").format(myDate)); 
-		System.out.println(new SimpleDateFormat("yyyy-MM-dd").format(myDate)); 
-		*/
-
 		while (!command.equalsIgnoreCase("exit")) {
 			displayMenu();
 			// Get the command from the user
@@ -174,6 +171,9 @@ public class PurchaseRequestSystemApp {
 	}
 	
 	private static void createPurchaseRequest() {
+
+		int productID = -1;
+		int quantity = 0;
 		
 		String username = Validator.getString(sc, "Enter a user name: ");
 		String password = Validator.getString(sc, "Enter password: ");
@@ -185,12 +185,13 @@ public class PurchaseRequestSystemApp {
 			String description = Validator.getString(sc, "Enter the description: ");
 			String justification = Validator.getString(sc, "Enter the justification: ");
 			System.out.println("By what date does this request need to be fulfilled? ");
-			String dateNeeded = Validator.getString(sc, "\tBe sure to enter the date ('yyyy-mm-dd') for now: ", 10);
+			String neededDate = Validator.getString(sc, "\tBe sure to enter the date ('yyyy-mm-dd') for now: ", 10);
+			Date dateNeeded = StringUtil.convertStringToSQLDate(neededDate);
 			String deliveryMode = Validator.getString(sc, "Enter the delivery mode (pickup or mail): ");
 			String docAttached = Validator.getString(sc, "Is documentation attached? (y/n) ", 1);
-			boolean isdocAttached = false;
+			boolean isDocAttached = false;
 			if (docAttached.equalsIgnoreCase("Y"))
-				isdocAttached = true;
+				isDocAttached = true;
 			String status = "Submitted";
 			
 			System.out.println("Here is a list of vendors...");
@@ -200,11 +201,33 @@ public class PurchaseRequestSystemApp {
 			
 			displayProductsByVendor(vendorID);
 			
+			double total = 0.0;
 			// To do: loop until user is done picking products and quantity.  Calculate total
+			System.out.println("Enter products by ID and then quantity.  Enter '0' for ID when finished.\n");
+			while (productID != 0) {
+				productID = Validator.getInt(sc, "Enter a product ID: ");
+				if (productID > 0) {
+					quantity = Validator.getInt(sc, "Enter the quantity: ");
+					if (quantity > 0) {
+						Product p = productDAO.getProductByProductID(productID);
+						total += p.getPrice() * quantity;	// increase the total of the purchase request by the price of the product requested * quanitity
+					}
+					else {
+						System.out.println("Error: quantity must be greater than or equal to zero.");
+					}
+				}
+			}
 			
-			System.out.println("Enter today's date...");
-			String submittedDate = Validator.getString(sc, "\tBe sure to enter the date ('yyyy-mm-dd') for now: ", 10);
+			Date submittedDate = StringUtil.convertTodaysDateToSQLDate();
+
+			// Create a request object and add it to the database (this is done at the same time as the lineitems are added...but for now we just want to see if this works
+			Request request = new Request(description, justification, dateNeeded, user.getId(), deliveryMode, isDocAttached, status, total, submittedDate);
+			if (requestDAO.createRequest(request))
+				System.out.println("\nYour request has been added successfully.\n");
+			else
+				System.out.println("\nYour request was not added successfully.\n");
 		}
 		System.out.println();
 	}
+	
 }
