@@ -65,6 +65,34 @@ public class ProductDB implements ProductDAO {
 		return products;
 	}
 
+	@Override
+	public Product getProductByProductID(int productID) {
+
+		String sql = "SELECT ID, Name, PartNumber, Price, Unit, VendorID, PhotoPath "
+				+ "from products "
+				+ "where ID = ?";
+        Connection connection = DBUtil.getConnection();
+        try (PreparedStatement ps = connection.prepareStatement(sql))
+        {
+        	ps.setInt(1, productID);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next())
+            {
+                return getProductFromRow(rs);
+            }
+            else
+            {
+            	rs.close();
+            	return null;
+            }
+        }
+        catch (SQLException e)
+        {
+        	System.out.println(e);
+        	return null;
+        }
+	}
+
 	private static Product getProductFromRow(ResultSet rs) throws SQLException
 	{
         Product product = new Product();

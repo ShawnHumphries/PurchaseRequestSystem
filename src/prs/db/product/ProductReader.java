@@ -8,4 +8,5 @@ public interface ProductReader {
 
 	ArrayList<Product> getAllProducts();
 	ArrayList<Product> getProductsByVendorID(int vendorID);
+	Product getProductByProductID(int productID);
 }
