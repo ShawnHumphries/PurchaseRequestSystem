@@ -7,5 +7,5 @@ import prs.business.Request;
 public interface RequestReader {
 
 	ArrayList <Request> getRequestsByUserID(int userID);
-
+	int getLastInsertID();
 }

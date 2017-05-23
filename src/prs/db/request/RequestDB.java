@@ -17,9 +17,9 @@ public class RequestDB implements RequestDAO {
 	@Override
 	public boolean createRequest(Request inRequest) {
 
-		String sql = "INSERT INTO requests (Description, Justification, DateNeeded, UserID, DeliveryMode, DocsAttached, Status, Total, SubmittedDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+		String insertSql = "INSERT INTO requests (Description, Justification, DateNeeded, UserID, DeliveryMode, DocsAttached, Status, Total, SubmittedDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		Connection connection = DBUtil.getConnection();
-		try (PreparedStatement ps = connection.prepareStatement(sql))
+		try (PreparedStatement ps = connection.prepareStatement(insertSql))
 		{
 			ps.setString(1, inRequest.getDescription());
 			ps.setString(2, inRequest.getJustification());
@@ -67,6 +67,32 @@ public class RequestDB implements RequestDAO {
 		return requests;
 	}
 	
+	@Override
+	public int getLastInsertID() {
+
+		String lastInsertIDSql = "SELECT LAST_INSERT_ID()";
+		//String lastInsertIDSql = "SELECT ID FROM requests ORDER BY ID DESC";
+		Connection connection = DBUtil.getConnection();
+		try (PreparedStatement ps = connection.prepareStatement(lastInsertIDSql))
+		{
+            ResultSet rs = ps.executeQuery();
+            if (rs.next())
+            {
+            	return rs.getInt(1);
+            }
+            else
+            {
+            	rs.close();
+            	return -1;
+            }
+		}
+		catch (SQLException e)
+		{
+			e.printStackTrace();
+			return -1;
+		}
+	}
+
 	private static Request getRequestFromRow(ResultSet rs) throws SQLException
 	{
         Request request = new Request();
