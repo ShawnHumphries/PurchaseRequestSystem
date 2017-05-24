@@ -1,8 +1,6 @@
 package prs.presentation;
 
 import java.sql.Date;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -40,30 +38,45 @@ public class PurchaseRequestSystemApp {
 
 		System.out.println("Welcome to the Purchase Request System");
 		
-		while (!command.equalsIgnoreCase("exit")) {
-			displayMenu();
-			// Get the command from the user
-			command = getCommand(sc, "Enter a command: ");
-			System.out.println();
-			// Perform the command 
-			switch (command) {
-			case "add":
-			case "register":
-				registerNewUser();
-				break;
-			case "request":
-				createPurchaseRequest();
-				break;
-			case "review":
-			case "vendor":
-				displayAllVendors();
-				break;
-			case "product":
-				displayProductsByVendor(0);
-			case "help":
-				break;
-			case "exit":
-				break;
+		String username = Validator.getString(sc, "Enter a user name: ");
+		String password = Validator.getString(sc, "Enter password: ");
+
+		User user = userDAO.getUserByUserNameAndPassword(username, password);
+		if (user == null) {
+			System.out.println("The username was invalid.  The login failed.");
+		}
+		else {	// Display the main menu (or go to the home page if this was a web application
+			while (!command.equalsIgnoreCase("exit")) {
+				displayMenu(user);
+				// Get the command from the user
+				command = getCommand(sc, "Enter a command: ");
+				System.out.println();
+				// Perform the command 
+				switch (command) {
+				case "add":
+				case "register":
+					registerNewUser();
+					break;
+				case "request":
+					createPurchaseRequest(user);
+					break;
+				case "review":
+					displayPurchaseRequests(user);
+					break;
+				case "vendor":
+					displayAllVendors();
+					break;
+				case "product":
+					displayProductsByVendor(0);
+					break;
+				case "approve":
+					approvePendingRequests();
+					break;
+				case "help":
+					break;
+				case "exit":
+					break;
+				}
 			}
 		}
 	}
@@ -71,13 +84,16 @@ public class PurchaseRequestSystemApp {
 	/*
 	 * Display a command menu.
 	 */
-	private static void displayMenu() {
+	private static void displayMenu(User user) {
 		System.out.println("COMMAND MENU");
 		System.out.println("register\t- Register a user");
 		System.out.println("request\t- Create a request");
 		System.out.println("review\t- Review submitted requests");
 		System.out.println("vendor\t- Display vendor info");
 		System.out.println("product\t- Display product info per vendor");
+		if (user.isManager()) {
+			System.out.println("approve\t- Approve a request");
+		}
 		System.out.println("help\t- Show this menu");
 		System.out.println("exit\t- Exit this application");
 		System.out.println();
@@ -96,6 +112,7 @@ public class PurchaseRequestSystemApp {
 			case "review":
 			case "vendor":
 			case "product":
+			case "approve":
 			case "help":
 			case "exit":
 				// The command is valid
@@ -173,80 +190,115 @@ public class PurchaseRequestSystemApp {
 		System.out.println();
 	}
 	
-	private static void createPurchaseRequest() {
+	private static void createPurchaseRequest(User user) {
 
 		int productID = -1;
 		int quantity = 0;
 		ArrayList <LineItem> lineItems = new ArrayList<>();
 		
-		String username = Validator.getString(sc, "Enter a user name: ");
-		String password = Validator.getString(sc, "Enter password: ");
-		User user = userDAO.getUserByUserNameAndPassword(username, password);
-		if (user == null) {
-			System.out.println("The username was invalid.  The purchase request cannot continue.");
+		String description = Validator.getString(sc, "Enter the description: ");
+		String justification = Validator.getString(sc, "Enter the justification: ");
+		System.out.println("By what date does this request need to be fulfilled? ");
+		String neededDate = Validator.getString(sc, "\tBe sure to enter the date ('yyyy-mm-dd') for now: ", 10);
+		Date dateNeeded = StringUtil.convertStringToSQLDate(neededDate);
+		String deliveryMode = Validator.getString(sc, "Enter the delivery mode (pickup or mail): ");
+		String docAttached = Validator.getString(sc, "Is documentation attached? (y/n) ", 1);
+		boolean isDocAttached = false;
+		if (docAttached.equalsIgnoreCase("Y"))
+			isDocAttached = true;
+		
+		System.out.println("Here is a list of vendors...");
+		System.out.println("Please try to work with pre-approved vendors first.");
+		displayAllVendors();
+		int vendorID = Validator.getInt(sc, "Enter the ID of the vendor to buy products from: ");
+		
+		displayProductsByVendor(vendorID);
+		
+		double total = 0.0;
+		// To do: loop until user is done picking products and quantity.  Calculate total
+		System.out.println("Enter products by ID and then quantity.  Enter '0' for ID when finished.\n");
+		while (productID != 0) {
+			productID = Validator.getInt(sc, "Enter a product ID: ");
+			if (productID > 0) {
+				quantity = Validator.getInt(sc, "Enter the quantity: ");
+				// Get the price of the product and add that to the total of the purchase request
+				if (quantity > 0) {
+					LineItem lineitem = new LineItem(productID, quantity);
+					lineItems.add(lineitem);
+					Product p = productDAO.getProductByProductID(productID);
+					total += p.getPrice() * quantity;
+				}
+				else {
+					System.out.println("Error: quantity must be greater than or equal to zero.");
+				}
+			}
+		}
+		
+		// set the status of the request.  All requests under $50.00 are automatically approved.
+		String status = "Submitted";
+		if (total < 50.00)
+			status = "Approved";
+		
+		Date submittedDate = StringUtil.convertTodaysDateToSQLDate();
+
+		// Create a request object and add it to the database (this is done at the same time as the lineitems are added...but for now we just want to see if this works
+		Request request = new Request(description, justification, dateNeeded, user.getId(), deliveryMode, isDocAttached, status, total, submittedDate);
+		if (requestDAO.createRequest(request)) {
+			// The INSERT was successful...so now get the ID of the INSERT
+			int requestID = requestDAO.getLastInsertID();
+			System.out.println("The request ID is: " + requestID);
+			for (LineItem lineItem : lineItems) {
+				lineItem.setRequestID(requestID);
+				lineItemDAO.addLineItem(lineItem);
+			}
+			System.out.println("\nYour request has been added successfully.\n");
+		}
+		else
+			System.out.println("\nYour request was not added successfully.\n");
+		System.out.println();
+	}
+	
+	private static void displayPurchaseRequests(User user) {
+		// Get all of the requests in the DB for the user
+		ArrayList<Request> requests = requestDAO.getRequestsByUserID(user.getId());
+		if (requests != null) {
+			System.out.println("Product Name\t\tDate Submitted\tStatus\t\tDate Needed");
+			for (Request request : requests) {
+				// Get all of the lineitems in the DB for the request
+				ArrayList<LineItem> lineItems = lineItemDAO.getLineItemsByRequestID(request.getId());
+				for (LineItem lineItem : lineItems) {
+					// Get the product information for each line item
+					Product product = productDAO.getProductByProductID(lineItem.getProductID());
+					// *** We will not display any vendor information ***
+					// Display information relevant to the purchase request to the console
+					System.out.println(product.getName() + "\t" + request.getSubmittedDate() + "\t" + request.getStatus() + "\t" + request.getDateNeeded());
+				}
+			}
 		}
 		else {
-			String description = Validator.getString(sc, "Enter the description: ");
-			String justification = Validator.getString(sc, "Enter the justification: ");
-			System.out.println("By what date does this request need to be fulfilled? ");
-			String neededDate = Validator.getString(sc, "\tBe sure to enter the date ('yyyy-mm-dd') for now: ", 10);
-			Date dateNeeded = StringUtil.convertStringToSQLDate(neededDate);
-			String deliveryMode = Validator.getString(sc, "Enter the delivery mode (pickup or mail): ");
-			String docAttached = Validator.getString(sc, "Is documentation attached? (y/n) ", 1);
-			boolean isDocAttached = false;
-			if (docAttached.equalsIgnoreCase("Y"))
-				isDocAttached = true;
-			
-			System.out.println("Here is a list of vendors...");
-			System.out.println("Please try to work with pre-approved vendors first.");
-			displayAllVendors();
-			int vendorID = Validator.getInt(sc, "Enter the ID of the vendor to buy products from: ");
-			
-			displayProductsByVendor(vendorID);
-			
-			double total = 0.0;
-			// To do: loop until user is done picking products and quantity.  Calculate total
-			System.out.println("Enter products by ID and then quantity.  Enter '0' for ID when finished.\n");
-			while (productID != 0) {
-				productID = Validator.getInt(sc, "Enter a product ID: ");
-				if (productID > 0) {
-					quantity = Validator.getInt(sc, "Enter the quantity: ");
-					// Get the price of the product and add that to the total of the purchase request
-					if (quantity > 0) {
-						LineItem lineitem = new LineItem(productID, quantity);
-						lineItems.add(lineitem);
-						Product p = productDAO.getProductByProductID(productID);
-						total += p.getPrice() * quantity;
-					}
-					else {
-						System.out.println("Error: quantity must be greater than or equal to zero.");
-					}
-				}
-			}
-			
-			// set the status of the request.  All requests under $50.00 are automatically approved.
-			String status = "Submitted";
-			if (total < 50.00)
-				status = "Approved";
-			
-			Date submittedDate = StringUtil.convertTodaysDateToSQLDate();
-
-			// Create a request object and add it to the database (this is done at the same time as the lineitems are added...but for now we just want to see if this works
-			Request request = new Request(description, justification, dateNeeded, user.getId(), deliveryMode, isDocAttached, status, total, submittedDate);
-			if (requestDAO.createRequest(request)) {
-				// The INSERT was successful...so now get the ID of the INSERT
-				int requestID = requestDAO.getLastInsertID();
-				System.out.println("The request ID is: " + requestID);
-				for (LineItem li : lineItems) {
-					li.setRequestID(requestID);
-					lineItemDAO.addLineItem(li);
-				}
-				System.out.println("\nYour request has been added successfully.\n");
-			}
-			else
-				System.out.println("\nYour request was not added successfully.\n");
+			System.out.println("\nUser " + user.getUsername() + " has no requests.");
 		}
 		System.out.println();
 	}
 	
+	private static void approvePendingRequests() {
+		
+		// To Do: get a list of pending requests and display them in the console
+		ArrayList<Request> pendingRequests = requestDAO.getPendingRequests();
+		if (pendingRequests != null) {
+			System.out.println("\nHere is a list of pending purchase requests:");
+			System.out.println();
+			int requestID = Validator.getInt(sc, "Enter a request to act upon: ");
+			String status = Validator.getString(sc, "Enter the new request status (Approved or Rejected)");
+			if (requestDAO.updateRequestStatus(requestID, status)) {
+				System.out.println("The request was updated successfully.  Thank you for your time.");
+			}
+			else {
+				System.out.println("The request was not updated successfully.");
+			}
+		}
+		else {
+			System.out.println("\nThere are no requests to approve");
+		}
+	}
 }
