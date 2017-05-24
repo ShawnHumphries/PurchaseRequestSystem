@@ -14,7 +14,7 @@ public class User {
 	private String lastName;
 	private String phone;
 	private String email;
-	private boolean manager;
+	private boolean isManager;
 	
 	// Default constructor
 	public User() {
@@ -25,17 +25,17 @@ public class User {
 		lastName = "";
 		phone = "";
 		email = "";
-		manager = false;
+		isManager = false;
 	}
 	
-	public User(String username, String password, String firstName, String lastName, String phone, String email, boolean manager) {
+	public User(String username, String password, String firstName, String lastName, String phone, String email, boolean isManager) {
 		this.username = username;
 		this.password = password;
 		this.firstName = firstName;
 		this.lastName = lastName;
 		this.phone = phone;
 		this.email = email;
-		this.manager = manager;
+		this.isManager = isManager;
 	}
 
 	public int getId() {
@@ -95,11 +95,11 @@ public class User {
 	}
 
 	public boolean isManager() {
-		return manager;
+		return isManager;
 	}
 
-	public void setManager(boolean manager) {
-		this.manager = manager;
+	public void setManager(boolean isManager) {
+		this.isManager = isManager;
 	}
 	
 }
