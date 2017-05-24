@@ -68,6 +68,32 @@ public class RequestDB implements RequestDAO {
 	}
 	
 	@Override
+	public ArrayList<Request> getPendingRequests() {
+
+		requests = new ArrayList<>();
+		String sql = "SELECT ID, Description, Justification, DateNeeded, DeliveryMode, DocsAttached, Status, Total, SubmittedDate "
+				+ "from requests "
+				+ "where status = 'Submitted' OR status = 'Pending' "
+				+ "order by ID";
+        Connection connection = DBUtil.getConnection();
+        try (PreparedStatement ps = connection.prepareStatement(sql))
+        {
+            ResultSet rs = ps.executeQuery();
+        	while (rs.next())
+        	{
+        		Request r = getRequestFromRow(rs);
+        		requests.add(r);
+        	}
+        }
+        catch (SQLException e)
+        {
+        	System.out.println(e);
+        	return null;
+        }
+		return requests;
+	}
+
+	@Override
 	public int getLastInsertID() {
 
 		String lastInsertIDSql = "SELECT LAST_INSERT_ID()";
@@ -91,6 +117,12 @@ public class RequestDB implements RequestDAO {
 			e.printStackTrace();
 			return -1;
 		}
+	}
+
+	@Override
+	public boolean updateRequestStatus(int inRequestID, String inStatus) {
+
+		return false;
 	}
 
 	private static Request getRequestFromRow(ResultSet rs) throws SQLException

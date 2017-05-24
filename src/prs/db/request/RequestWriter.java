@@ -7,4 +7,5 @@ import prs.business.Request;
 public interface RequestWriter {
 
 	boolean createRequest(Request inRequest);
+	boolean updateRequestStatus(int inRequestID, String inStatus);
 }
