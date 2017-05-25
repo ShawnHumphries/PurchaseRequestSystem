@@ -71,7 +71,7 @@ public class RequestDB implements RequestDAO {
 	public ArrayList<Request> getPendingRequests() {
 
 		requests = new ArrayList<>();
-		String sql = "SELECT ID, Description, Justification, DateNeeded, DeliveryMode, DocsAttached, Status, Total, SubmittedDate "
+		String sql = "SELECT ID, Description, Justification, DateNeeded, UserID, DeliveryMode, DocsAttached, Status, Total, SubmittedDate "
 				+ "from requests "
 				+ "where status = 'Submitted' OR status = 'Pending' "
 				+ "order by ID";
@@ -133,6 +133,7 @@ public class RequestDB implements RequestDAO {
         request.setDescription(rs.getString("Description"));
         request.setJustification(rs.getString("Justification"));
         request.setDateNeeded(rs.getDate("DateNeeded"));
+        request.setUserID(rs.getInt("UserID"));
         request.setDeliveryMode(rs.getString("DeliveryMode"));
         request.setDocsAttached(rs.getBoolean("DocsAttached"));
         request.setStatus(rs.getString("Status"));
