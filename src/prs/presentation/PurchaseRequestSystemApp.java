@@ -12,6 +12,7 @@ import prs.business.Vendor;
 import prs.db.DAOFactory;
 import prs.db.lineitem.LineItemDAO;
 import prs.db.product.ProductDAO;
+import prs.db.request.RequestConstants;
 import prs.db.request.RequestDAO;
 import prs.db.user.UserDAO;
 import prs.db.vendor.VendorDAO;
@@ -36,7 +37,7 @@ public class PurchaseRequestSystemApp {
 
 		String command = "";
 
-		System.out.println("Welcome to the Purchase Request System");
+		System.out.println("Welcome to the Purchase Request System\n");
 		
 		String username = Validator.getString(sc, "Enter a user name: ");
 		String password = Validator.getString(sc, "Enter password: ");
@@ -85,7 +86,7 @@ public class PurchaseRequestSystemApp {
 	 * Display a command menu.
 	 */
 	private static void displayMenu(User user) {
-		System.out.println("COMMAND MENU");
+		System.out.println("\nCOMMAND MENU");
 		System.out.println("register\t- Register a user");
 		System.out.println("request\t- Create a request");
 		System.out.println("review\t- Review submitted requests");
@@ -236,7 +237,7 @@ public class PurchaseRequestSystemApp {
 		
 		// set the status of the request.  All requests under $50.00 are automatically approved.
 		String status = "Submitted";
-		if (total < 50.00)
+		if (total < RequestConstants.MGR_APPROVAL_LIMIT)
 			status = "Approved";
 		
 		Date submittedDate = StringUtil.convertTodaysDateToSQLDate();
@@ -288,8 +289,15 @@ public class PurchaseRequestSystemApp {
 		if (pendingRequests != null) {
 			System.out.println("\nHere is a list of pending purchase requests:");
 			System.out.println();
-			int requestID = Validator.getInt(sc, "Enter a request to act upon: ");
-			String status = Validator.getString(sc, "Enter the new request status (Approved or Rejected)");
+			System.out.println("ID\tUser Name\tDate Submitted\tDate Needed\tStatus\t\tTotal");
+			for (Request request : pendingRequests) {
+				int userID = request.getUserID();
+				String username = userDAO.getUserNameByID(userID);
+				System.out.println(request.getId() + "\t" + username + "\t\t" + request.getSubmittedDate() + "\t" + request.getDateNeeded() + "\t" + request.getStatus() + "\t" + StringUtil.getFormattedDouble(request.getTotal()));
+			}
+			System.out.println();
+			int requestID = Validator.getInt(sc, "Enter a request ID to act upon: ");
+			String status = Validator.getString(sc, "Enter the new request status (Approved or Rejected): ");
 			if (requestDAO.updateRequestStatus(requestID, status)) {
 				System.out.println("The request was updated successfully.  Thank you for your time.");
 			}
