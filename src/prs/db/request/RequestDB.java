@@ -122,7 +122,20 @@ public class RequestDB implements RequestDAO {
 	@Override
 	public boolean updateRequestStatus(int inRequestID, String inStatus) {
 
-		return false;
+		String updateSql = "UPDATE requests SET Status = ? WHERE ID = ?";
+		Connection connection = DBUtil.getConnection();
+		try (PreparedStatement ps = connection.prepareStatement(updateSql))
+		{
+        	ps.setString(1, inStatus);
+        	ps.setInt(2, inRequestID);
+			ps.executeUpdate();
+		}
+		catch (SQLException e)
+		{
+			System.out.println(e);
+			return false;
+		}
+		return true;
 	}
 
 	private static Request getRequestFromRow(ResultSet rs) throws SQLException
