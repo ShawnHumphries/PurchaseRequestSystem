@@ -59,6 +59,34 @@ public class UserDB implements UserDAO {
         }
 	}
 
+	@Override
+	public String getUserNameByID(int userID) {
+
+		String sql = "SELECT UserName "
+				+ "from users "
+				+ "where ID = ?";
+        Connection connection = DBUtil.getConnection();
+        try (PreparedStatement ps = connection.prepareStatement(sql))
+        {
+        	ps.setInt(1, userID);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next())
+            {
+                return rs.getString("UserName");
+            }
+            else
+            {
+            	rs.close();
+            	return "";
+            }
+        }
+        catch (SQLException e)
+        {
+        	System.out.println(e);
+        	return "";
+        }
+	}
+
 	private static User getUserFromRow(ResultSet rs) throws SQLException
 	{
         User user = new User();
